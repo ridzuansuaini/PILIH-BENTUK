@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17132f">
+<title>Magic Hand — Misi Tangkap Bentuk</title>
+<style>
+:root{
+  --ink:#211b45;--violet:#7657e8;--pink:#ff65ad;--cyan:#54e6ed;
+  --gold:#ffd86c;--mint:#74e5bd;--glass:rgba(24,19,56,.76);
+  --line:rgba(255,255,255,.2);--shadow:0 18px 55px rgba(9,8,30,.34)
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17132f;color:white;font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+#video{
+  position:fixed;inset:0;width:100%;height:100%;object-fit:cover;
+  transform:scaleX(-1);display:none;background:#15112c;z-index:0;
+  filter:saturate(1.08) brightness(.76)
+}
+#videoShade{position:fixed;inset:0;z-index:1;pointer-events:none;background:
+  linear-gradient(180deg,rgba(13,10,35,.58),transparent 27%,transparent 68%,rgba(13,10,35,.58)),
+  radial-gradient(ellipse at center,transparent 40%,rgba(16,11,42,.22) 100%)}
+#threeLayer{position:fixed;inset:0;z-index:2;pointer-events:none}
+#threeLayer canvas{display:block;width:100%;height:100%}
+#fallbackBg{position:fixed;inset:0;z-index:0;overflow:hidden;background:
+  radial-gradient(circle at 20% 20%,#4c2d8d 0,transparent 35%),
+  radial-gradient(circle at 80% 70%,#174d82 0,transparent 34%),
+  linear-gradient(135deg,#17132f,#26235a 55%,#122e54)}
+#fallbackBg:before,#fallbackBg:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.14);border-radius:50%;width:60vw;height:60vw;left:20vw;top:12vh;animation:orbit 24s linear infinite}
+#fallbackBg:after{width:85vw;height:85vw;left:8vw;top:-4vh;border-color:rgba(255,216,108,.13);animation-direction:reverse}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.spark{position:absolute;width:12px;height:12px;background:#fff;border-radius:3px;transform:rotate(45deg);box-shadow:0 0 18px #9afaff;animation:twinkle 2s ease-in-out infinite}
+.spark:nth-child(1){left:13%;top:22%}.spark:nth-child(2){left:82%;top:19%;animation-delay:.5s}.spark:nth-child(3){left:73%;top:76%;animation-delay:1s}.spark:nth-child(4){left:25%;top:78%;animation-delay:1.5s}
+@keyframes twinkle{50%{opacity:.25;transform:rotate(45deg) scale(.55)}}
+.topbar{
+  position:fixed;z-index:5;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(13px + env(safe-area-inset-top)) 18px 12px;pointer-events:none
+}
+.brand{display:flex;align-items:center;gap:10px;text-shadow:0 3px 14px #0008}
+.brand-mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#ffdf79,#ff8a5c);color:#4c2a7d;font-size:23px;font-weight:1000;box-shadow:0 5px 0 #b95772}
+.brand-title{font-size:13px;font-weight:1000;letter-spacing:.12em}
+.brand-sub{font-size:9px;letter-spacing:.17em;color:#d8d5ff;margin-top:3px}
+.top-right{display:flex;align-items:center;gap:8px;pointer-events:auto}
+.status{display:flex;align-items:center;gap:7px;background:rgba(18,15,48,.68);border:1px solid var(--line);padding:9px 12px;border-radius:999px;font-size:11px;font-weight:900;backdrop-filter:blur(12px)}
+.dot{width:8px;height:8px;border-radius:50%;background:#ffbd5c;box-shadow:0 0 10px currentColor}
+.dot.live{background:#61e5ad}
+.icon-btn{border:1px solid var(--line);background:rgba(18,15,48,.68);color:white;border-radius:13px;padding:9px 12px;font-size:12px;font-weight:900;backdrop-filter:blur(12px)}
+.hud{position:fixed;z-index:5;top:82px;left:18px;right:18px;display:none;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.hud.show{display:flex}
+.glass{background:var(--glass);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(16px);border-radius:19px}
+.target-card{padding:12px 15px;min-width:210px;max-width:280px}
+.eyebrow{font-size:9px;letter-spacing:.17em;color:#b8b0ff;font-weight:1000}
+.target-name{font-size:22px;font-weight:1000;line-height:1.12;margin-top:4px}
+.target-hint{font-size:11px;color:#ddd9ff;margin-top:5px;line-height:1.4}
+.target-shape{display:flex;align-items:center;gap:11px}
+.target-preview{width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#fff,#d8d3ff);display:grid;place-items:center;color:#392b72;font-size:26px;flex:none}
+.stats{display:flex;gap:8px}
+.stat{padding:10px 14px;min-width:83px;text-align:center}
+.stat-label{font-size:9px;color:#c9c3ff;font-weight:1000;letter-spacing:.13em}
+.stat-value{font-size:22px;font-weight:1000;margin-top:3px}
+.progress-wrap{width:min(280px,30vw);margin-top:8px}
+.progress-label{display:flex;justify-content:space-between;font-size:9px;color:#ddd9ff;font-weight:900;margin-bottom:5px}
+.progress{height:7px;background:#ffffff24;border-radius:99px;overflow:hidden}
+.progress>span{display:block;height:100%;width:0;background:linear-gradient(90deg,#54e6ed,#8df0bd,#ffd86c);border-radius:99px;transition:width .35s}
+.bottom-hint{
+  position:fixed;z-index:5;bottom:calc(17px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+  width:min(650px,calc(100% - 28px));text-align:center;padding:11px 16px;border-radius:16px;
+  background:rgba(18,15,48,.72);border:1px solid var(--line);backdrop-filter:blur(14px);
+  color:#fff;font-size:12px;font-weight:800;line-height:1.45;display:none;pointer-events:none
+}
+.bottom-hint.show{display:block}
+.toast{
+  position:fixed;z-index:8;left:50%;top:43%;transform:translate(-50%,-10px);opacity:0;pointer-events:none;
+  max-width:min(540px,90vw);padding:15px 22px;border-radius:18px;background:rgba(22,17,58,.93);
+  border:1px solid rgba(255,255,255,.25);box-shadow:0 15px 40px #08051e88;text-align:center;
+  font-size:clamp(15px,2.5vw,22px);font-weight:1000;transition:.22s
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{
+  position:fixed;z-index:10;inset:0;display:grid;place-items:center;padding:20px;
+  background:rgba(9,7,28,.45);backdrop-filter:blur(7px)
+}
+.modal.hidden{display:none}
+.modal-card{
+  width:min(590px,96vw);padding:clamp(22px,4vw,36px);border-radius:28px;
+  background:linear-gradient(145deg,rgba(43,34,91,.97),rgba(22,28,75,.97));
+  border:1px solid rgba(255,255,255,.25);box-shadow:0 25px 90px #050318aa;text-align:center;position:relative;overflow:hidden
+}
+.modal-card:before{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:#8b62ff22;top:-130px;right:-80px}
+.logo-orb{width:78px;height:78px;border-radius:25px;margin:0 auto 14px;display:grid;place-items:center;font-size:38px;
+  background:linear-gradient(145deg,#ffe37d,#ff79ae 55%,#8c6cff);box-shadow:0 8px 0 #4a347e,0 0 35px #9c7bff77}
+h1{font-size:clamp(29px,5vw,48px);line-height:1.02;margin:8px 0 9px;letter-spacing:-.04em}
+h1 span{display:block;color:#ffd86c}
+.modal-sub{color:#ddd9ff;font-size:14px;line-height:1.6;max-width:470px;margin:0 auto 18px}
+.feature-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:15px 0 20px}
+.feature{font-size:10px;font-weight:900;color:#f6f1ff;background:#ffffff12;border:1px solid #ffffff22;padding:7px 10px;border-radius:999px}
+.primary,.secondary{
+  border:0;border-radius:15px;padding:13px 19px;font-weight:1000;transition:transform .15s,filter .15s;
+}
+.primary{background:linear-gradient(135deg,#ff75b6,#ff4f9e);color:#fff;box-shadow:0 5px 0 #b93479,0 10px 24px #f34b9d44}
+.secondary{background:#ffffff16;border:1px solid #ffffff2b;color:white}
+.primary:hover,.secondary:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;position:relative}
+.small-note{font-size:10px;color:#b9b5dc;line-height:1.55;margin-top:17px}
+.loading{display:none;margin:14px auto 0;color:#d9d4ff;font-size:12px}
+.loading.show{display:block}
+.loader{display:inline-block;width:13px;height:13px;border:2px solid #ffffff55;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:7px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.permission{margin:12px auto 0;padding:10px 12px;max-width:460px;border-radius:13px;background:#ffffff0d;color:#d7d3f3;font-size:11px;line-height:1.5}
+.camera-frame{position:fixed;z-index:4;inset:0;border:0;pointer-events:none;box-shadow:inset 0 0 0 1px #ffffff08}
+.hand-status{position:fixed;z-index:5;right:18px;top:160px;background:rgba(18,15,48,.65);border:1px solid var(--line);border-radius:14px;padding:9px 12px;font-size:10px;font-weight:900;color:#fff;display:none;backdrop-filter:blur(12px)}
+.hand-status.show{display:block}
+@media(max-width:650px){
+ .topbar{padding-left:11px;padding-right:11px}.brand-mark{width:36px;height:36px}.brand-title{font-size:11px}.brand-sub{font-size:8px}
+ .status{font-size:9px;padding:8px}.icon-btn{font-size:10px;padding:8px}
+ .hud{top:70px;left:10px;right:10px;gap:7px}.target-card{min-width:0;max-width:58%;padding:9px 10px}
+ .target-name{font-size:16px}.target-hint{font-size:9px}.target-preview{width:38px;height:38px}
+ .stat{padding:8px 9px;min-width:57px}.stat-label{font-size:7px}.stat-value{font-size:17px}
+ .stats{gap:5px}.progress-wrap{width:100%}
+ .hand-status{top:auto;right:10px;bottom:92px;font-size:9px}
+ .bottom-hint{font-size:10px;bottom:12px;padding:9px 12px}
+}
+</style>
+</head>
+<body>
+<div id="fallbackBg"><i class="spark"></i><i class="spark"></i><i class="spark"></i><i class="spark"></i></div>
+<video id="video" autoplay muted playsinline></video>
+<div id="videoShade"></div>
+<div id="threeLayer"></div>
+<div class="camera-frame"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">✦</div>
+    <div><div class="brand-title">MAGIC HAND</div><div class="brand-sub">THE SHAPE HUNTER</div></div>
+  </div>
+  <div class="top-right">
+    <div class="status"><span class="dot" id="cameraDot"></span><span id="cameraStatus">KAMERA BELUM AKTIF</span></div>
+    <button class="icon-btn" id="muteBtn" type="button">♫ Bunyi ON</button>
+    <button class="icon-btn" id="stopBtn" type="button" style="display:none">Matikan kamera</button>
+  </div>
+</header>
+
+<section class="hud" id="hud">
+  <div class="target-card glass">
+    <div class="eyebrow" id="levelLabel">LEVEL 1 • BENTUK 3D</div>
+    <div class="target-shape">
+      <div class="target-preview" id="targetPreview">●</div>
+      <div><div class="eyebrow">CARI DAN TANGKAP</div><div class="target-name" id="targetName">SFERA</div><div class="target-hint" id="targetHint">Bentuk seperti bola</div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>KEMAJUAN MISI</span><span id="progressText">0 / 5</span></div>
+      <div class="progress"><span id="progressBar"></span></div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat glass"><div class="stat-label">MATA</div><div class="stat-value" id="score">0</div></div>
+    <div class="stat glass"><div class="stat-label">BINTANG</div><div class="stat-value" id="stars">0 ★</div></div>
+  </div>
+</section>
+
+<div class="hand-status" id="handStatus">TANGAN DIKESAN: 0 / 2</div>
+<div class="toast" id="toast"></div>
+<div class="bottom-hint" id="bottomHint">Cubit ibu jari + telunjuk untuk ambil bentuk. Gerakkan tangan, kemudian buka jari untuk menangkap!</div>
+
+<div class="modal" id="introModal">
+  <div class="modal-card">
+    <div class="logo-orb">✋</div>
+    <div class="eyebrow">PERMAINAN PEMBELAJARAN AR • UMUR 5–6 TAHUN</div>
+    <h1>MAGIC HAND <span>THE SHAPE HUNTER</span></h1>
+    <p class="modal-sub">Gunakan kedua-dua tangan untuk menangkap bentuk geometri ajaib yang terapung di hadapan kamera. Cubit, gerakkan dan lepaskan bentuk yang betul!</p>
+    <div class="feature-row">
+      <span class="feature">✦ 2 TANGAN</span><span class="feature">✦ 3D AUGMENTED REALITY</span><span class="feature">✦ PINCH TRACKING</span>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="cameraBtn" type="button">AKTIFKAN KAMERA</button>
+      <button class="primary" id="playBtn" type="button" disabled>MULA MISI</button>
+    </div>
+    <div class="loading" id="loading"><span class="loader"></span><span id="loadingText">Menyediakan kamera dan AI hand tracking...</span></div>
+    <div class="permission">Kamera hanya bermula selepas kebenaran diberikan. Video diproses dalam pelayar dan tidak dirakam atau disimpan. Gunakan HTTPS atau localhost untuk akses kamera.</div>
+    <div class="permission"><strong>Hubungan KP2026:</strong> Bidang Pembelajaran Kognitif, dimensi Matematik dalam kehidupan harian, Standard Pembelajaran KF 1.1.5* — mengecam dan menamakan bentuk objek di persekitaran. Permainan memperkenalkan bentuk 3D dahulu, diikuti bentuk 2D.</div>
+    <div class="small-note">Tip: Pastikan kedua-dua tangan kelihatan, pencahayaan mencukupi dan kamera tidak terlindung. Guru boleh memperkenalkan objek maujud seperti bola, dadu, kotak kasut dan tin sebelum bermain.</div>
+  </div>
+</div>
+
+<div class="modal hidden" id="messageModal">
+  <div class="modal-card">
+    <div class="logo-orb" id="messageIcon">★</div>
+    <div class="eyebrow" id="messageEyebrow">MISI SELESAI</div>
+    <h1 id="messageTitle">HEBAT, PEMBURU BENTUK!</h1>
+    <p class="modal-sub" id="messageText">Kamu berjaya!</p>
+    <div class="feature-row" id="messageStats"></div>
+    <div class="btn-row">
+      <button class="primary" id="messageMain" type="button">TERUSKAN</button>
+      <button class="secondary" id="messageHome" type="button">MENU UTAMA</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+const video = $("video");
+const container = $("threeLayer");
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+const dist2 = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+let THREE, FilesetResolver, HandLandmarker;
+let renderer, scene, viewCamera, handLandmarker;
+let stream=null, cameraReady=false, trackingReady=false, running=false, muted=false;
+let lastDetect=0, lastVideoTime=-1, raf=0, toastTimer=0;
+let objects=[], particles=[], cursors=[];
+let score=0, stars=0, levelIndex=0, targetIndex=0, pendingAdvance=false;
+let activeSequence=[];
+const hands=[
+  {pinching:false,held:null,cursor:null,visible:false},
+  {pinching:false,held:null,cursor:null,visible:false}
+];
+
+const SHAPES={
+ sphere:{name:"Sfera",hint:"Bentuk seperti bola",color:0xa88aff,emoji:"🟣",kind:"3d",example:"bola"},
+ cube:{name:"Kubus",hint:"Enam permukaan segi empat sama",color:0xff6b7c,emoji:"🟥",kind:"3d",example:"dadu"},
+ cuboid:{name:"Kuboid",hint:"Bentuk seperti kotak kasut",color:0x58c9ef,emoji:"📦",kind:"3d",example:"kotak kasut"},
+ cylinder:{name:"Silinder",hint:"Dua permukaan bulat",color:0x62dfad,emoji:"🟢",kind:"3d",example:"tin"},
+ pyramid:{name:"Piramid",hint:"Tapak dan sisi berbentuk segi tiga",color:0xffc857,emoji:"🔺",kind:"3d",example:"piramid"},
+ circle:{name:"Bulatan",hint:"Tiada bucu",color:0xff78b7,emoji:"🔴",kind:"2d",example:"jam"},
+ triangle:{name:"Segi tiga",hint:"Tiga sisi dan tiga bucu",color:0xffb14e,emoji:"🔺",kind:"2d",example:"papan tanda"},
+ square:{name:"Segi empat sama",hint:"Empat sisi sama panjang",color:0x69d8b0,emoji:"🟩",kind:"2d",example:"jubin"},
+ rectangle:{name:"Segi empat tepat",hint:"Sisi bertentangan sama panjang",color:0x789bff,emoji:"🟦",kind:"2d",example:"pintu"}
+};
+const LEVELS=[
+ {name:"LEVEL 1 • BENTUK 3D",title:"Dunia Bentuk 3D",ids:["sphere","cube","cuboid","cylinder","pyramid"]},
+ {name:"LEVEL 2 • BENTUK 2D",title:"Taman Bentuk 2D",ids:["circle","triangle","square","rectangle"]},
+ {name:"LEVEL 3 • CABARAN CAMPURAN",title:"Cabaran Campuran",ids:["sphere","triangle","cube","circle","cylinder","square","pyramid","rectangle","cuboid"]}
+];
+
+function setLoading(show,text="Menyediakan kamera dan AI hand tracking..."){
+  $("loading").classList.toggle("show",show);$("loadingText").textContent=text;
+}
+function setCameraStatus(text,live=false){
+  $("cameraStatus").textContent=text;$("cameraDot").classList.toggle("live",live);
+}
+function say(text){
+  if(muted||!("speechSynthesis" in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ms-MY";u.rate=.9;u.pitch=1.12;speechSynthesis.speak(u)}catch(e){}
+}
+function toast(text,good=true){
+  const el=$("toast");el.textContent=text;el.style.background=good?"rgba(20,95,88,.94)":"rgba(88,38,83,.95)";
+  el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1900);
+}
+function showMessage(icon,eyebrow,title,text,mainLabel,mainAction,stats=""){
+  $("messageIcon").textContent=icon;$("messageEyebrow").textContent=eyebrow;
+  $("messageTitle").textContent=title;$("messageText").textContent=text;
+  $("messageMain").textContent=mainLabel;$("messageMain").onclick=mainAction;
+  $("messageStats").innerHTML=stats;$("messageModal").classList.remove("hidden");
+}
+function hideMessage(){$("messageModal").classList.add("hidden")}
+function createShapeGeometry(id){
+  switch(id){
+    case "sphere": return new THREE.SphereGeometry(.58,36,28);
+    case "cube": return new THREE.BoxGeometry(.92,.92,.92);
+    case "cuboid": return new THREE.BoxGeometry(1.18,.76,.78);
+    case "cylinder": return new THREE.CylinderGeometry(.48,.48,1.02,36);
+    case "pyramid": return new THREE.ConeGeometry(.66,1.05,4,1);
+    case "circle": return new THREE.CircleGeometry(.58,48);
+    case "triangle":{
+      const s=new THREE.Shape();s.moveTo(0,.65);s.lineTo(-.62,-.48);s.lineTo(.62,-.48);s.closePath();
+      return new THREE.ShapeGeometry(s);
+    }
+    case "square":{
+      const s=new THREE.Shape();s.moveTo(-.52,-.52);s.lineTo(.52,-.52);s.lineTo(.52,.52);s.lineTo(-.52,.52);s.closePath();
+      return new THREE.ShapeGeometry(s);
+    }
+    case "rectangle":{
+      const s=new THREE.Shape();s.moveTo(-.72,-.4);s.lineTo(.72,-.4);s.lineTo(.72,.4);s.lineTo(-.72,.4);s.closePath();
+      return new THREE.ShapeGeometry(s);
+    }
+  }
+}
+function labelSprite(text){
+  const c=document.createElement("canvas");c.width=512;c.height=128;
+  const x=c.getContext("2d");
+  x.fillStyle="rgba(255,255,255,.94)";x.beginPath();x.roundRect(8,8,496,112,34);x.fill();
+  x.strokeStyle="rgba(118,87,232,.35)";x.lineWidth=6;x.stroke();
+  x.fillStyle="#28204e";x.font="bold 43px Trebuchet MS, sans-serif";x.textAlign="center";x.textBaseline="middle";
+  x.fillText(text,256,66,460);
+  const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
+  sprite.scale.set(1.55,.39,1);sprite.position.y=-.92;
+  return sprite;
+}
+function screenToWorld(nx,ny,z=0){
+  const d=viewCamera.position.z-z;
+  const h=2*d*Math.tan(THREE.MathUtils.degToRad(viewCamera.fov/2));
+  const w=h*viewCamera.aspect;
+  return new THREE.Vector3((nx-.5)*w,(.5-ny)*h,z);
+}
+function createScene(){
+  scene=new THREE.Scene();
+  viewCamera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);
+  viewCamera.position.set(0,0,11);viewCamera.lookAt(0,0,0);
+  renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:"high-performance"});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setClearColor(0x000000,0);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.25;
+  container.innerHTML="";container.appendChild(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0xddeaff,0x40306c,2.1));
+  const key=new THREE.DirectionalLight(0xffffff,2.5);key.position.set(-3,7,9);scene.add(key);
+  const rim=new THREE.PointLight(0x6aefff,2.3,30);rim.position.set(4,1,5);scene.add(rim);
+  const pink=new THREE.PointLight(0xff70c2,1.8,25);pink.position.set(-5,-2,4);scene.add(pink);
+  createCursors();
+  window.addEventListener("resize",resizeScene);
+}
+function resizeScene(){
+  if(!renderer||!viewCamera)return;
+  viewCamera.aspect=innerWidth/innerHeight;viewCamera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+  objects.forEach(o=>{const p=screenToWorld(o.userData.nx,o.userData.ny,o.userData.z);o.position.copy(p)});
+  cursors.forEach(c=>{if(c.userData.nx!==undefined){const p=screenToWorld(c.userData.nx,c.userData.ny,.7);c.position.copy(p)}});
+}
+function createCursors(){
+  const colors=[0x54efff,0xff80c9];
+  for(let i=0;i<2;i++){
+    const g=new THREE.Group();
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,10,44),new THREE.MeshBasicMaterial({color:colors[i]}));
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(.065,18,14),new THREE.MeshBasicMaterial({color:0xffffff}));
+    g.add(ring,dot);g.userData.ring=ring;g.visible=false;scene.add(g);cursors.push(g);hands[i].cursor=g;
+  }
+}
+function makeCollectible(id,nx,ny){
+  const s=SHAPES[id],group=new THREE.Group(),z=0;
+  const mat=new THREE.MeshPhysicalMaterial({color:s.color,metalness:.13,roughness:.22,clearcoat:.9,clearcoatRoughness:.16,emissive:s.color,emissiveIntensity:.12,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(createShapeGeometry(id),mat);
+  if(s.kind==="2d"){mesh.position.z=.06;mesh.material.side=THREE.DoubleSide}
+  mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(.78,.025,8,48),new THREE.MeshBasicMaterial({color:s.color,transparent:true,opacity:.75}));
+  group.add(halo);group.userData.halo=halo;group.userData.mesh=mesh;
+  group.add(labelSprite(s.name));
+  group.userData.id=id;group.userData.nx=nx;group.userData.ny=ny;group.userData.z=z;
+  group.userData.baseY=0;group.userData.phase=Math.random()*Math.PI*2;group.userData.heldBy=null;
+  group.userData.origin={x:nx,y:ny};group.userData.returning=false;
+  const p=screenToWorld(nx,ny,z);group.position.copy(p);
+  scene.add(group);objects.push(group);
+  return group;
+}
+function clearCollectibles(){
+  for(const o of objects){scene.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material){if(Array.isArray(n.material))n.material.forEach(m=>m.dispose());else n.material.dispose()}})}
+  objects=[];
+  hands.forEach(h=>{h.held=null;h.pinching=false});
+}
+function spawnSet(){
+  clearCollectibles();
+  const target=activeSequence[targetIndex];
+  const distractors=LEVELS[levelIndex].ids.filter(id=>id!==target);
+  const ids=[target,target,...distractors.slice(0,3)];
+  const positions=[[.18,.39],[.5,.31],[.82,.4],[.31,.68],[.69,.68]];
+  ids.forEach((id,i)=>makeCollectible(id,positions[i][0],positions[i][1]));
+}
+function updateTargetUI(){
+  const id=activeSequence[targetIndex],s=SHAPES[id];
+  $("levelLabel").textContent=LEVELS[levelIndex].name;
+  $("targetName").textContent=s.name.toUpperCase();
+  $("targetHint").textContent=s.hint+" • Contoh: "+s.example;
+  $("targetPreview").textContent=s.emoji;
+  $("progressText").textContent=(targetIndex+1)+" / "+activeSequence.length;
+  $("progressBar").style.width=(targetIndex/activeSequence.length*100)+"%";
+}
+function updateStats(){
+  $("score").textContent=score;$("stars").textContent=stars+" ★";
+}
+function startLevel(index){
+  levelIndex=index;activeSequence=[...LEVELS[index].ids];targetIndex=0;pendingAdvance=false;
+  updateTargetUI();spawnSet();updateStats();
+  $("bottomHint").textContent="Cubit ibu jari + telunjuk untuk ambil bentuk. Gerakkan tangan, kemudian buka jari untuk menangkap!";
+}
+function startGame(){
+  if(!cameraReady||!trackingReady){toast("Aktifkan kamera dahulu.",false);return}
+  score=0;stars=0;startLevel(0);running=true;
+  $("introModal").classList.add("hidden");$("hud").classList.add("show");$("bottomHint").classList.add("show");
+  $("handStatus").classList.add("show");say("Selamat datang ke Magic Hand. Mari tangkap bentuk ajaib!");
+}
+function nextTarget(){
+  targetIndex++;pendingAdvance=false;
+  if(targetIndex>=activeSequence.length){
+    running=false;
+    if(levelIndex<LEVELS.length-1){
+      showMessage("✦","LEVEL SELESAI",LEVELS[levelIndex].title+" berjaya diselesaikan!","Kamu mengumpulkan semua bentuk. Bersedia untuk cabaran seterusnya?","LEVEL SETERUSNYA",()=>{
+        hideMessage();startLevel(levelIndex+1);running=true;say("Tahniah! Mari ke level seterusnya.");
+      },`<span class="feature">${stars} BINTANG</span><span class="feature">${score} MATA</span>`);
+    }else{
+      $("bottomHint").classList.remove("show");
+      showMessage("🏆","MISI SELESAI","JUARA MAGIC HAND!","Hebat! Kamu telah mengecam dan menangkap semua bentuk geometri.","MAIN SEMULA",()=>{
+        hideMessage();startLevel(0);running=true;say("Mari bermain sekali lagi!");
+      },`<span class="feature">${stars} BINTANG</span><span class="feature">${score} MATA</span><span class="feature">3 LEVEL SELESAI</span>`);
+      say("Tahniah! Kamu juara Magic Hand!");
+    }
+    return;
+  }
+  updateTargetUI();spawnSet();
+}
+function finishHeldCycle(){
+  if(hands.some(h=>h.held))return;
+  if(pendingAdvance&&running)nextTarget();
+}
+function burstAt(pos,color){
+  const count=24;
+  for(let i=0;i<count;i++){
+    const geo=new THREE.SphereGeometry(.035+Math.random()*.035,7,6);
+    const mat=new THREE.MeshBasicMaterial({color,transparent:true});
+    const m=new THREE.Mesh(geo,mat);m.position.copy(pos);scene.add(m);
+    particles.push({mesh:m,v:new THREE.Vector3((Math.random()-.5)*4,Math.random()*3+0.6,(Math.random()-.5)*2),life:.75+Math.random()*.45,max:.9});
+  }
+}
+function releaseObject(handIndex){
+  const hand=hands[handIndex],obj=hand.held;
+  if(!obj)return;
+  hand.held=null;obj.userData.heldBy=null;
+  const grabbedTarget=obj.userData.targetAtGrab;
+  if(obj.userData.id===grabbedTarget){
+    const p=obj.position.clone();scene.remove(obj);objects=objects.filter(x=>x!==obj);
+    burstAt(p,SHAPES[grabbedTarget].color);score+=10;stars++;updateStats();
+    if(!pendingAdvance){
+      pendingAdvance=true;
+      toast("HEBAT! "+SHAPES[grabbedTarget].name.toUpperCase()+" BERJAYA DITANGKAP! +10",true);
+      say("Hebat! Ini ialah "+SHAPES[grabbedTarget].name+".");
+    }else{
+      score+=5;updateStats();toast("BONUS! KEDUA-DUA TANGAN BERJAYA!",true);
+    }
+  }else{
+    obj.userData.returning=true;obj.userData.returnStart={x:obj.userData.nx,y:obj.userData.ny};
+    toast("Hampir tepat! Sasaran ialah "+SHAPES[activeSequence[targetIndex]].name+". Cuba lagi!",false);
+    say("Cuba lagi. Cari "+SHAPES[activeSequence[targetIndex]].name+".");
+  }
+  finishHeldCycle();
+}
+function tryGrab(handIndex,pointer){
+  let best=null,bestD=.19;
+  for(const obj of objects){
+    if(obj.userData.heldBy!==null||obj.userData.returning)continue;
+    const d=dist2(pointer,{x:obj.userData.nx,y:obj.userData.ny});
+    if(d<bestD){bestD=d;best=obj}
+  }
+  if(best){
+    best.userData.heldBy=handIndex;best.userData.targetAtGrab=activeSequence[targetIndex];
+    hands[handIndex].held=best;best.userData.returning=false;
+    toast("Bentuk dipegang! Gerakkan tangan dan lepaskan.",true);
+  }
+}
+function mapLandmarkToScreen(lm){
+  const vw=video.videoWidth||1280,vh=video.videoHeight||720;
+  const scale=Math.max(innerWidth/vw,innerHeight/vh);
+  const dw=vw*scale,dh=vh*scale,ox=(innerWidth-dw)/2,oy=(innerHeight-dh)/2;
+  const px=(1-lm.x)*dw+ox,py=lm.y*dh+oy;
+  return {x:clamp(px/innerWidth,0,1),y:clamp(py/innerHeight,0,1)};
+}
+function updateHandCursor(i,landmarks){
+  const hand=hands[i],cursor=hand.cursor;
+  const thumb=landmarks[4],index=landmarks[8],wrist=landmarks[0],middle=landmarks[9];
+  const a=mapLandmarkToScreen(thumb),b=mapLandmarkToScreen(index);
+  const pointer={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  const palm=Math.hypot(wrist.x-middle.x,wrist.y-middle.y)||.1;
+  const pinchRatio=Math.hypot(thumb.x-index.x,thumb.y-index.y)/palm;
+  const wasPinching=hand.pinching;
+  let nowPinching=wasPinching;
+  if(pinchRatio<.31)nowPinching=true;
+  if(pinchRatio>.52)nowPinching=false;
+  const p=screenToWorld(pointer.x,pointer.y,.75);
+  cursor.position.copy(p);cursor.visible=true;cursor.userData.nx=pointer.x;cursor.userData.ny=pointer.y;
+  cursor.userData.ring.scale.setScalar(nowPinching?.76:1);
+  cursor.userData.ring.material.color.set(i===0?0x54efff:0xff80c9);
+  hand.visible=true;
+  if(nowPinching&&!wasPinching){
+    hand.pinching=true;
+    if(!hand.held)tryGrab(i,pointer);
+  }else if(nowPinching&&wasPinching){
+    hand.pinching=true;
+    if(hand.held){
+      hand.held.userData.nx=pointer.x;hand.held.userData.ny=pointer.y;
+      hand.held.position.copy(screenToWorld(pointer.x,pointer.y,.25));
+      hand.held.rotation.z+=.025;
+    }
+  }else if(!nowPinching&&wasPinching){
+    hand.pinching=false;
+    if(hand.held)releaseObject(i);
+  }else{
+    hand.pinching=false;
+  }
+}
+function resetLostHand(i){
+  const h=hands[i];
+  h.cursor.visible=false;h.visible=false;
+  if(h.held){
+    const o=h.held;o.userData.heldBy=null;o.userData.returning=true;
+    h.held=null;h.pinching=false;finishHeldCycle();
+  }else h.pinching=false;
+}
+function detectHands(now){
+  if(!handLandmarker||!cameraReady||video.readyState<2)return;
+  if(now-lastDetect<35)return;
+  lastDetect=now;
+  try{
+    const result=handLandmarker.detectForVideo(video,now);
+    const list=result.landmarks||[];
+    const labels=result.handednesses||[];
+    $("handStatus").textContent="TANGAN DIKESAN: "+list.length+" / 2";
+    if(!running){
+      hands.forEach(h=>{if(h.cursor)h.cursor.visible=false;});
+      return;
+    }
+    const seen=new Set();
+    for(let i=0;i<list.length;i++){
+      const label=labels[i]?.[0]?.categoryName;
+      const slot=label==="Left"?0:label==="Right"?1:i;
+      seen.add(slot);
+      updateHandCursor(slot,list[i]);
+    }
+    for(let i=0;i<2;i++)if(!seen.has(i))resetLostHand(i);
+  }catch(e){console.warn("Hand tracking:",e)}
+}
+function animateObjects(t,dt){
+  objects.forEach(o=>{
+    if(o.userData.heldBy!==null)return;
+    if(o.userData.returning){
+      const ox=o.userData.origin.x,oy=o.userData.origin.y;
+      o.userData.nx+=(ox-o.userData.nx)*Math.min(1,dt*7);
+      o.userData.ny+=(oy-o.userData.ny)*Math.min(1,dt*7);
+      if(Math.abs(ox-o.userData.nx)+Math.abs(oy-o.userData.ny)<.01){
+        o.userData.nx=ox;o.userData.ny=oy;o.userData.returning=false;
+      }
+    }else{
+      o.userData.floatY=Math.sin(t*1.6+o.userData.phase)*.045;
+      o.rotation.y+=dt*.48;o.rotation.x+=dt*.23;
+      o.userData.halo.rotation.z-=dt*.35;
+    }
+    const p=screenToWorld(o.userData.nx,o.userData.ny,o.userData.z);
+    p.y+=o.userData.floatY||0;o.position.copy(p);
+  });
+  particles=particles.filter(p=>{
+    p.life-=dt;p.mesh.position.addScaledVector(p.v,dt);p.v.y-=2.7*dt;
+    p.mesh.material.opacity=clamp(p.life/p.max,0,1);
+    if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();return false}
+    return true;
+  });
+}
+function animate(now){
+  raf=requestAnimationFrame(animate);
+  const t=now/1000,dt=Math.min(.04,(now-(animate.last||now))/1000);animate.last=now;
+  if(cameraReady&&trackingReady)detectHands(now);
+  if(scene){
+    animateObjects(t,dt);
+    cursors.forEach((c,i)=>{if(c.visible){c.userData.ring.rotation.z+=dt*(i===0?1.2:-1.1)}});
+    renderer.render(scene,viewCamera);
+  }
+}
+async function loadLibraries(){
+  $("loadingText").textContent="Memuatkan enjin grafik 3D...";
+  const threeMod=await import("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js");
+  THREE=threeMod;
+  createScene();
+  $("loadingText").textContent="Memuatkan AI pengesan dua tangan...";
+  const mp=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm");
+  FilesetResolver=mp.FilesetResolver;HandLandmarker=mp.HandLandmarker;
+  const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  const model="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+  try{
+    handLandmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:model,delegate:"GPU"},
+      runningMode:"VIDEO",numHands:2,
+      minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5
+    });
+  }catch(gpuError){
+    handLandmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:model,delegate:"CPU"},
+      runningMode:"VIDEO",numHands:2,
+      minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5
+    });
+  }
+  trackingReady=true;
+}
+async function activateCamera(){
+  if(!navigator.mediaDevices?.getUserMedia){
+    setLoading(false);toast("Pelayar ini tidak menyokong akses kamera. Cuba Chrome atau Edge melalui HTTPS.",false);return;
+  }
+  $("cameraBtn").disabled=true;setLoading(true,"Meminta kebenaran webcam...");
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      audio:false,video:{facingMode:"user",width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}}
+    });
+    video.srcObject=stream;await video.play();video.style.display="block";$("fallbackBg").style.display="none";
+    setLoading(true,"Memuatkan grafik 3D dan model AI. Sambungan internet diperlukan...");
+    await loadLibraries();
+    cameraReady=true;setCameraStatus("KAMERA AKTIF",true);
+    $("stopBtn").style.display="inline-block";$("cameraBtn").textContent="KAMERA AKTIF ✓";
+    $("playBtn").disabled=false;setLoading(false);
+    toast("Dua tangan sedia dikesan. Jom bermain!",true);
+    $("playBtn").focus();
+    if(!raf)animate(performance.now());
+  }catch(err){
+    console.error(err);setLoading(false);$("cameraBtn").disabled=false;
+    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+    video.style.display="none";$("fallbackBg").style.display="block";
+    if(renderer){renderer.dispose();container.innerHTML="";renderer=null;scene=null;viewCamera=null;objects=[];particles=[];cursors=[]}
+    const msg=err.name==="NotAllowedError"?"Kebenaran kamera ditolak. Benarkan akses kamera dalam pelayar.":
+      err.name==="NotFoundError"?"Webcam tidak dijumpai. Sambungkan kamera dan cuba lagi.":
+      "Kamera atau model AI tidak dapat dimulakan. Pastikan internet aktif dan gunakan HTTPS atau localhost.";
+    toast(msg,false);$("loadingText").textContent=msg;
+  }
+}
+function stopCamera(){
+  running=false;cameraReady=false;trackingReady=false;
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  if(handLandmarker){try{handLandmarker.close()}catch(e){}handLandmarker=null}
+  video.pause();video.srcObject=null;video.style.display="none";$("fallbackBg").style.display="block";
+  if(renderer){renderer.dispose();container.innerHTML="";renderer=null;scene=null;viewCamera=null;objects=[];particles=[];cursors=[]}
+  hands.forEach(h=>{h.held=null;h.pinching=false;h.cursor=null;h.visible=false});
+  $("hud").classList.remove("show");$("bottomHint").classList.remove("show");$("handStatus").classList.remove("show");
+  $("introModal").classList.remove("hidden");$("messageModal").classList.add("hidden");
+  $("cameraBtn").disabled=false;$("cameraBtn").textContent="AKTIFKAN KAMERA";$("playBtn").disabled=true;
+  $("stopBtn").style.display="none";setCameraStatus("KAMERA BELUM AKTIF",false);
+}
+$("cameraBtn").addEventListener("click",activateCamera);
+$("playBtn").addEventListener("click",startGame);
+$("stopBtn").addEventListener("click",stopCamera);
+$("muteBtn").addEventListener("click",()=>{
+  muted=!muted;$("muteBtn").textContent=muted?"♫ Bunyi OFF":"♫ Bunyi ON";
+  if(muted&&"speechSynthesis"in window)speechSynthesis.cancel();
+});
+$("messageHome").addEventListener("click",()=>{
+  hideMessage();running=false;$("hud").classList.remove("show");$("bottomHint").classList.remove("show");
+  $("introModal").classList.remove("hidden");
+});
+window.addEventListener("beforeunload",()=>{
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+});
+</script>
+</body>
+</html>
